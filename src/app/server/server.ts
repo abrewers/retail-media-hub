@@ -6,7 +6,7 @@ import { registerMakeGoodRoutes } from './routes/ops/make-good-routes';
 import { type AppKitWithLakebase, fail, resetOps, setAppSeed, setupOpsSchema, userEmail } from './routes/ops/ops-db';
 import { clearWarehouseCache, readDemoConfig } from './routes/ops/warehouse';
 
-// Retail Media Command Center
+// Retail Media Hub
 // Reads governed data from Unity Catalog through the SQL warehouse and writes operational
 // actions to Lakebase (app_ops). The Genie space is created by the setup job; its id is read
 // from cfg_demo_config at startup, so run the setup job before starting the app.

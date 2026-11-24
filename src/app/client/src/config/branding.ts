@@ -5,7 +5,7 @@
 export const BRAND = {
   /** Used until /api/config answers, and when setup hasn't run yet. Keep in sync with seed_config.yml retailer.name. */
   defaultRetailer: 'Waypoint Fuel & Market',
-  appName: 'Retail Media Command Center',
+  appName: 'Retail Media Hub',
   /** Fill colour of the lettermark. Red is kept for "critical" elsewhere in the app. */
   markColor: '#0F766E',
 };

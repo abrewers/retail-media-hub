@@ -1,11 +1,11 @@
-# Retail Media Command Center: MVP bundle.
+# Retail Media Hub: Databricks demo bundle.
 #
 # Deploy in three commands (see README.md):
 #   databricks bundle deploy -t <target>
 #   databricks bundle run rmcc_setup -t <target>     # data, PDFs, views, contract extraction, Genie
 #   databricks bundle run rmcc_app -t <target>       # starts the app (reads the Genie space from setup)
 bundle:
-  name: retail-media-command-center
+  name: retail-media-hub
 
 include:
   - resources/*.yml
@@ -33,7 +33,7 @@ variables:
     description: Pro or Serverless SQL warehouse ID (not a Lakehouse RT warehouse; it can't query metric views).
   lakebase_project:
     description: Lakebase project ID created by this bundle for the app's write-back tables.
-    default: rmcc-ops
+    default: retail-media-hub-ops
   app_name:
     description: Databricks App name (lowercase letters, numbers, hyphens; 26 characters max).
     default: retail-media-hub

@@ -27,7 +27,7 @@
   "keywords": [],
   "author": "",
   "license": "Unlicensed",
-  "description": "Retail Media Command Center",
+  "description": "Retail Media Hub",
   "dependencies": {
     "@databricks/appkit": "0.84.0",
     "@databricks/appkit-ui": "0.84.0",

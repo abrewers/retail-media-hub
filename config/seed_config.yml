@@ -1,4 +1,4 @@
-# Retail Media Command Center: synthetic demo data configuration.
+# Retail Media Hub: synthetic demo data configuration.
 #
 # The setup job (src/notebooks/setup.py) turns this file into source tables and
 # contract PDFs. Everything is deterministic (fixed random seed): the same config

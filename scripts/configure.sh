@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Retail Media Command Center: guided setup.
+# Retail Media Hub: guided setup.
 #
 # Picks the workspace, SQL warehouse, catalog and schema, checks that the app and Lakebase names
 # are free, asks the optional variables (with recommendations), writes targets/<name>.yml and
@@ -161,7 +161,7 @@ pick_name() {  # pick_name <label> <check-fn> <base> <sep> <regex> <rule>
 }
 schema=$(pick_name "Schema (created by the bundle)" exists_schema "retail_media" "_" '^[a-z][a-z0-9_]{0,62}$' "Use lowercase letters, numbers and underscores.")
 app_name=$(pick_name "App name" exists_app "retail-media-hub" "-" '^[a-z][a-z0-9-]{1,25}$' "Use lowercase letters, numbers and hyphens, 26 characters max.")
-lakebase_project=$(pick_name "Lakebase project ID" exists_project "rmcc-ops" "-" '^[a-z][a-z0-9-]{1,62}$' "Use lowercase letters, numbers and hyphens.")
+lakebase_project=$(pick_name "Lakebase project ID" exists_project "retail-media-hub-ops" "-" '^[a-z][a-z0-9-]{1,62}$' "Use lowercase letters, numbers and hyphens.")
 ok "Schema $catalog.$schema · app $app_name · Lakebase project $lakebase_project"
 
 # ---------- 5. optional variables ----------

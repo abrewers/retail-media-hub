@@ -1,4 +1,4 @@
-# Retail Media Command Center
+# Retail Media Hub
 
 A deployable demo of a retail media operations app on Databricks:
 
@@ -46,15 +46,14 @@ The setup job checks most of these first and stops with a plain message if one i
 
 ## 2. Get the code
 
-The repository is private, so accept the GitHub invitation first, then sign git in to GitHub. The simplest way is the GitHub CLI (`brew install gh`):
+The repository is public; no GitHub account is needed.
 
 ```bash
-gh auth login --hostname github.com --git-protocol https     # sign in as the invited GitHub user
-gh repo clone abrewers/retail-media-command-center
-cd retail-media-command-center
+git clone https://github.com/abrewers/retail-media-hub.git
+cd retail-media-hub
 ```
 
-Plain `git clone https://github.com/abrewers/retail-media-command-center.git` also works once git has GitHub credentials (`gh auth setup-git`, SSH keys or a credential manager).
+No git? Download the ZIP from the repository page (**Code > Download ZIP**) and unzip it.
 
 All commands below run from this folder. On Windows, run them in WSL or Git Bash.
 
@@ -117,12 +116,12 @@ targets:
       # Names must be unique in the workspace. Change them if this demo is already deployed there.
       schema: retail_media
       app_name: retail-media-hub         # lowercase, hyphens, 26 characters max
-      lakebase_project: rmcc-ops
+      lakebase_project: retail-media-hub-ops
 ```
 
 Every command below passes `-t mine`, so you don't need to touch `targets/azure.yml`.
 
-> **Testing in a workspace that already has this demo?** Use different names, for example `schema: retail_media_test`, `app_name: retail-media-hub-test`, `lakebase_project: rmcc-test-ops`. Otherwise the deploy fails, because the app or Lakebase project name is taken.
+> **Testing in a workspace that already has this demo?** Use different names, for example `schema: retail_media_test`, `app_name: retail-media-hub-test`, `lakebase_project: retail-media-hub-test-ops`. Otherwise the deploy fails, because the app or Lakebase project name is taken.
 
 Optional variables (defaults in `databricks.yml`):
 
@@ -180,7 +179,7 @@ It ends with `You can access the app at https://...`. Open that URL. The first t
 | Select **FizzCo Summer Fuel-Up** | Recommended action **Rate adjustment, $14,783**, 10.5x the current pace; clause filled in from `IO-2026-0731_...pdf` |
 | Campaign **FizzCo Summer Fuel-Up** > **Ask why** | Genie answers in the side panel, citing screen downtime in the Southwest |
 | Press **⌘K** (Ctrl+K), type `Phoenix` | Campaigns found by store; Enter opens one |
-| Workspace > Dashboards > **Retail Media Command Center** | The same 35 / 8 / 2 / $242.9K |
+| Workspace > Dashboards > **Retail Media Hub** | The same 35 / 8 / 2 / $242.9K |
 | Sidebar > **Reset demo** | Clears anything you clicked, removes uploaded IOs and restores the 2 seeded make-goods |
 
 ---
@@ -221,7 +220,7 @@ In the commands below, use your own target and profile names: whatever you chose
    databricks bundle destroy -t mine --profile rmcc
    ```
    This removes the app, job, dashboard, Lakebase project, volume and schema (including the tables setup created there).
-2. Delete the Genie space by hand: Workspace > Genie > **Retail Media Command Center** > Delete. Setup created it, so the bundle doesn't track it.
+2. Delete the Genie space by hand: Workspace > Genie > **Retail Media Hub** > Delete. Setup created it, so the bundle doesn't track it.
 3. If you set `source_catalog` / `source_schema` to somewhere else, drop the generated `dim_*` / `fact_*` tables there too.
 
 ## Troubleshooting
@@ -236,6 +235,7 @@ In the commands below, use your own target and profile names: whatever you chose
 | App: *Load campaigns failed* | Step 7 hasn't run, or ran before the app existed; re-run step 7 |
 | App: *permission denied for schema app_ops* (app logs) | The app was recreated with a new identity; re-run step 7, then step 8 |
 | Validation: *Extraction ... FAIL* | `ai_extract` misread a PDF. Re-run step 7, or set the job parameter `strict_extraction_check` to `false` and review `dim_contract_terms` |
+| Deploy fails with *A soft-deleted project currently has this resource name* | You destroyed an earlier copy, and Lakebase keeps a deleted project's name for a while. Set a new `lakebase_project` name in your target (or re-run `./scripts/configure.sh`) and deploy again |
 | *Viewer access WARN* in the setup output | The `viewer_group` grant was skipped; it's optional. Set `viewer_group: ""` to silence it |
 
 App logs:

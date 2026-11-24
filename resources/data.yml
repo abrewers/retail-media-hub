@@ -3,7 +3,7 @@ resources:
     rmcc:
       catalog_name: ${var.catalog}
       name: ${var.schema}
-      comment: Retail Media Command Center governed layer (views, metric views, contract terms, demo config).
+      comment: Retail Media Hub governed layer (views, metric views, contract terms, demo config).
 
   volumes:
     contracts:
@@ -16,4 +16,4 @@ resources:
   postgres_projects:
     rmcc_ops:
       project_id: ${var.lakebase_project}
-      display_name: Retail Media Command Center write-back
+      display_name: Retail Media Hub write-back

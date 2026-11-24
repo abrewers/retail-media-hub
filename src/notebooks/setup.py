@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Retail Media Command Center: setup
+# MAGIC # Retail Media Hub: setup
 # MAGIC
 # MAGIC One idempotent notebook that builds everything under the app. It runs as the bundle job `rmcc_setup` and is safe to re-run.
 # MAGIC
@@ -39,7 +39,7 @@ for name, default in [
     ("catalog", ""), ("schema", "retail_media"), ("source_catalog", ""), ("source_schema", ""),
     ("volume", "contracts"), ("config_path", ""), ("as_of_date", ""), ("generate_data", "true"),
     ("warehouse_id", ""), ("app_name", ""), ("lakebase_project", ""), ("viewer_group", "users"),
-    ("genie_title", "Retail Media Command Center"), ("run_genie_check", "true"),
+    ("genie_title", "Retail Media Hub"), ("run_genie_check", "true"),
     ("strict_extraction_check", "true"), ("retailer_name", ""),
 ]:
     dbutils.widgets.text(name, default)
@@ -301,7 +301,7 @@ def render_io(k, camp):
     pdf = FPDF(format="Letter")
     # fixed metadata so an unchanged contract renders to identical bytes (keeps extraction incremental)
     pdf.set_creation_date(dt.datetime.combine(effective, dt.time(12, 0), tzinfo=dt.timezone.utc))
-    pdf.set_producer("Retail Media Command Center setup")
+    pdf.set_producer("Retail Media Hub setup")
     pdf.set_margins(22, 20, 22)
     pdf.add_page()
     def h(text, size=11):

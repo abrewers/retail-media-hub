@@ -2,7 +2,7 @@ resources:
   apps:
     rmcc_app:
       name: ${var.app_name}
-      description: Retail Media Command Center (campaign triage, rebalance, make-goods, Genie)
+      description: "Retail Media Hub: campaign pacing, rebalancing, make-goods, IO contract upload and Genie"
       source_code_path: ../src/app
       # Genie questions run with the signed-in user's permissions (on-behalf-of-user).
       user_api_scopes:

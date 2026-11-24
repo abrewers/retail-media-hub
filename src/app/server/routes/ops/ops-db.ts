@@ -1,4 +1,4 @@
-// Lakebase (Postgres) write-back for the Command Center.
+// Lakebase (Postgres) write-back for Retail Media Hub.
 //
 // The app owns one schema, app_ops: rebalance actions, make-good log and campaign ops status.
 // Governed campaign data is NOT copied here; it is read from Unity Catalog (see governed.ts).
