@@ -1,0 +1,1201 @@
+{
+  "datasets": [
+    {
+      "name": "campaign_delivery",
+      "displayName": "Campaign delivery (metric view)",
+      "queryLines": [
+        "SELECT `Campaign Name` AS campaign_name, `Advertiser` AS advertiser, `Region` AS region,\n",
+        "       `Campaign Status` AS campaign_status, `Risk Level` AS risk_level, `Days Remaining` AS days_remaining,\n",
+        "       MEASURE(`Contracted Impressions`) AS contracted_impressions,\n",
+        "       MEASURE(`Delivered Impressions`) AS delivered_impressions,\n",
+        "       MEASURE(`Shortfall Dollars`) AS shortfall_dollars,\n",
+        "       MEASURE(`Delivery Rate`) / 100 AS delivery_rate,\n",
+        "       MEASURE(`Pace Adjusted Pct`) / 100 AS pace_pct,\n",
+        "       CASE WHEN `Risk Level` IN ('Critical', 'At Risk') THEN 1 ELSE 0 END AS at_risk_flag,\n",
+        "       CASE WHEN `Risk Level` = 'Over-Delivering' THEN 1 ELSE 0 END AS over_delivering_flag\n",
+        "FROM metric_view_campaign_delivery\n",
+        "GROUP BY ALL\n",
+        "ORDER BY shortfall_dollars DESC\n"
+      ]
+    },
+    {
+      "name": "site_weekly",
+      "displayName": "Weekly delivery drivers by region (metric view)",
+      "queryLines": [
+        "SELECT `Impression Week` AS week, `Region` AS region,\n",
+        "       MEASURE(`Impressions`) AS impressions,\n",
+        "       MEASURE(`Screen Uptime Pct`) / 100 AS uptime,\n",
+        "       MEASURE(`Impressions Lost to Downtime`) AS lost_impressions\n",
+        "FROM metric_view_site_delivery\n",
+        "WHERE `Campaign Status` = 'active'\n",
+        "GROUP BY ALL\n",
+        "ORDER BY week\n"
+      ]
+    },
+    {
+      "name": "archetype",
+      "displayName": "Traffic and delivery by site archetype (metric view)",
+      "queryLines": [
+        "SELECT `Site Archetype` AS archetype,\n",
+        "       MEASURE(`Fuel Transactions`) / MEASURE(`Site Days`) AS avg_daily_transactions,\n",
+        "       MEASURE(`Impressions`) / MEASURE(`Site Days`) AS avg_daily_impressions,\n",
+        "       MEASURE(`Screen Uptime Pct`) / 100 AS uptime\n",
+        "FROM metric_view_site_delivery\n",
+        "WHERE `Campaign Status` = 'active'\n",
+        "GROUP BY ALL\n",
+        "ORDER BY avg_daily_transactions DESC\n"
+      ]
+    },
+    {
+      "name": "roi_model",
+      "displayName": "ROI model",
+      "queryLines": [
+        "WITH at_risk AS (\n",
+        "  SELECT campaign_id, campaign_name, cpm_rate, days_remaining,\n",
+        "         shortfall_impressions AS shortfall_imp, shortfall_dollars AS shortfall_usd\n",
+        "  FROM v_campaign_delivery\n",
+        "  WHERE status = 'active' AND risk_level IN ('Critical', 'At Risk')\n",
+        "),\n",
+        "site_avg AS (\n",
+        "  SELECT campaign_id, site_id, ROUND(SUM(impressions) / COUNT(DISTINCT impression_date)) AS avg_day\n",
+        "  FROM v_campaign_site_daily\n",
+        "  WHERE campaign_id IN (SELECT campaign_id FROM at_risk)\n",
+        "  GROUP BY ALL\n",
+        "),\n",
+        "ranked AS (\n",
+        "  SELECT *, ROW_NUMBER() OVER (PARTITION BY campaign_id ORDER BY avg_day, site_id) AS rn,\n",
+        "         COUNT(*) OVER (PARTITION BY campaign_id) AS n\n",
+        "  FROM site_avg\n",
+        "),\n",
+        "plan AS (\n",
+        "  SELECT campaign_id,\n",
+        "         SUM(CASE\n",
+        "               WHEN rn > n - GREATEST(5, CEIL(n * 0.35)) THEN ROUND(avg_day * 1.4) - avg_day\n",
+        "               WHEN rn <= LEAST(GREATEST(3, CEIL(n * 0.25)), GREATEST(n - GREATEST(5, CEIL(n * 0.35)), 0))\n",
+        "                 THEN ROUND(avg_day * 0.5) - avg_day\n",
+        "               ELSE 0\n",
+        "             END) AS net_daily\n",
+        "  FROM ranked\n",
+        "  GROUP BY campaign_id\n",
+        "),\n",
+        "recovery AS (\n",
+        "  SELECT a.campaign_name, a.shortfall_usd,\n",
+        "         LEAST(GREATEST(p.net_daily * GREATEST(a.days_remaining, 0), 0), a.shortfall_imp) * a.cpm_rate / 1000 AS recovered_usd\n",
+        "  FROM at_risk a JOIN plan p USING (campaign_id)\n",
+        "),\n",
+        "turns AS (\n",
+        "  SELECT 365.0 / AVG(flight_days) AS per_year FROM v_campaign_delivery WHERE status = 'active'\n",
+        ")\n",
+        "SELECT 1 AS sort_order, 'Avoided make-goods (rebalance at-risk campaigns)' AS benefit, 'Demo data' AS basis,\n",
+        "       ROUND(SUM(r.shortfall_usd)) AS current_exposure_usd,\n",
+        "       ROUND(SUM(r.recovered_usd) / SUM(r.shortfall_usd), 3) AS recovery_rate,\n",
+        "       ROUND(SUM(r.recovered_usd) * MAX(t.per_year)) AS annual_savings_usd,\n",
+        "       CONCAT(COUNT(*), ' at-risk campaigns, $', FORMAT_NUMBER(SUM(r.shortfall_usd), 0),\n",
+        "              ' exposure. One Suggest-plan rebalance each, using days remaining as of the demo date, recovers $',\n",
+        "              FORMAT_NUMBER(SUM(r.recovered_usd), 0), '. x ', FORMAT_NUMBER(MAX(t.per_year), 1),\n",
+        "              ' portfolio turns per year (365 / average flight length).') AS description\n",
+        "FROM recovery r CROSS JOIN turns t\n",
+        "UNION ALL\n",
+        "SELECT 2, 'Analyst hours freed', 'Assumption (validate with the retail media team)', 2400 * 85, NULL, 2400 * 85,\n",
+        "       '2,400 hours a year at $85 an hour loaded: self-serve answers through Genie and the dashboard instead of manual reporting. Not derived from the demo data.'\n",
+        "ORDER BY sort_order\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "campaign_delivery",
+      "displayName": "Campaign Delivery",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_delivery",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Campaign delivery and make-good exposure\n",
+                "\n",
+                "Every number comes from the governed metric view `metric_view_campaign_delivery`: the same definitions the app and Genie use."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_campaign_status",
+            "queries": [
+              {
+                "name": "status_query",
+                "query": {
+                  "datasetName": "campaign_delivery",
+                  "fields": [
+                    {
+                      "name": "campaign_status",
+                      "expression": "`campaign_status`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "campaign_status",
+                    "displayName": "Campaign status",
+                    "queryName": "status_query"
+                  }
+                ]
+              },
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "STRING",
+                    "values": [
+                      {
+                        "value": "active"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Campaign status"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "risk_legend",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Risk level: **Critical** below 75% pace \u00b7 **At Risk** below 85% \u00b7 **Over-Delivering** above 110%."
+              ]
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 9,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_campaigns",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "campaign_delivery",
+                  "fields": [
+                    {
+                      "name": "count(campaign_name)",
+                      "expression": "COUNT(`campaign_name`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(campaign_name)",
+                  "displayName": "Campaigns"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Campaigns"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_shortfall",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "campaign_delivery",
+                  "fields": [
+                    {
+                      "name": "sum(shortfall_dollars)",
+                      "expression": "SUM(`shortfall_dollars`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(shortfall_dollars)",
+                  "displayName": "Shortfall (make-good exposure)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Shortfall (make-good exposure)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_at_risk",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "campaign_delivery",
+                  "fields": [
+                    {
+                      "name": "sum(at_risk_flag)",
+                      "expression": "SUM(`at_risk_flag`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(at_risk_flag)",
+                  "displayName": "Campaigns at risk"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Campaigns at risk"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_over",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "campaign_delivery",
+                  "fields": [
+                    {
+                      "name": "sum(over_delivering_flag)",
+                      "expression": "SUM(`over_delivering_flag`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(over_delivering_flag)",
+                  "displayName": "Over-delivering"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Over-delivering"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "risk_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "campaign_delivery",
+                  "fields": [
+                    {
+                      "name": "campaign_name",
+                      "expression": "`campaign_name`"
+                    },
+                    {
+                      "name": "advertiser",
+                      "expression": "`advertiser`"
+                    },
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "risk_level",
+                      "expression": "`risk_level`"
+                    },
+                    {
+                      "name": "days_remaining",
+                      "expression": "`days_remaining`"
+                    },
+                    {
+                      "name": "delivery_rate",
+                      "expression": "`delivery_rate`"
+                    },
+                    {
+                      "name": "pace_pct",
+                      "expression": "`pace_pct`"
+                    },
+                    {
+                      "name": "shortfall_dollars",
+                      "expression": "`shortfall_dollars`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "campaign_name",
+                    "displayName": "Campaign"
+                  },
+                  {
+                    "fieldName": "advertiser",
+                    "displayName": "Advertiser"
+                  },
+                  {
+                    "fieldName": "region",
+                    "displayName": "Region"
+                  },
+                  {
+                    "fieldName": "risk_level",
+                    "displayName": "Risk level"
+                  },
+                  {
+                    "fieldName": "days_remaining",
+                    "displayName": "Days left"
+                  },
+                  {
+                    "fieldName": "delivery_rate",
+                    "displayName": "Delivered",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "pace_pct",
+                    "displayName": "Pace",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "shortfall_dollars",
+                    "displayName": "Shortfall",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Campaign risk"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 7,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "shortfall_by_advertiser",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "campaign_delivery",
+                  "fields": [
+                    {
+                      "name": "advertiser",
+                      "expression": "`advertiser`"
+                    },
+                    {
+                      "name": "sum(shortfall_dollars)",
+                      "expression": "SUM(`shortfall_dollars`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(shortfall_dollars)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Shortfall",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "advertiser",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "value"
+                    }
+                  },
+                  "displayName": "Advertiser"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Shortfall by advertiser"
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 7,
+            "width": 5,
+            "height": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "delivery_drivers",
+      "displayName": "Delivery drivers",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_drivers",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Why delivery changes\n",
+                "\n",
+                "Impressions follow site traffic and working screens. Look for weeks where uptime drops in one region, and for site types with less traffic."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "uptime_by_week",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "site_weekly",
+                  "fields": [
+                    {
+                      "name": "week",
+                      "expression": "`week`"
+                    },
+                    {
+                      "name": "avg(uptime)",
+                      "expression": "AVG(`uptime`)"
+                    },
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "week",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Week"
+                },
+                "y": {
+                  "fieldName": "avg(uptime)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Screens online",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "region",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Region"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Screen uptime by week and region",
+                "description": "Active campaigns. A dip means screens were offline.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "lost_by_week",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "site_weekly",
+                  "fields": [
+                    {
+                      "name": "week",
+                      "expression": "`week`"
+                    },
+                    {
+                      "name": "sum(lost_impressions)",
+                      "expression": "SUM(`lost_impressions`)"
+                    },
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "week",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Week"
+                },
+                "y": {
+                  "fieldName": "sum(lost_impressions)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Lost impressions",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "region",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Region"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Impressions lost to screen downtime",
+                "description": "Expected impressions at full uptime minus delivered.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "tx_by_archetype",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "archetype",
+                  "fields": [
+                    {
+                      "name": "archetype",
+                      "expression": "`archetype`"
+                    },
+                    {
+                      "name": "sum(avg_daily_transactions)",
+                      "expression": "SUM(`avg_daily_transactions`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "archetype",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Archetype"
+                },
+                "y": {
+                  "fieldName": "sum(avg_daily_transactions)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Transactions per site day",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Fuel transactions per site per day"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "imp_by_archetype",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "archetype",
+                  "fields": [
+                    {
+                      "name": "archetype",
+                      "expression": "`archetype`"
+                    },
+                    {
+                      "name": "sum(avg_daily_impressions)",
+                      "expression": "SUM(`avg_daily_impressions`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "archetype",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Archetype"
+                },
+                "y": {
+                  "fieldName": "sum(avg_daily_impressions)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Impressions per site day",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Impressions per site per day"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 8,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "uptime_by_archetype",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "archetype",
+                  "fields": [
+                    {
+                      "name": "archetype",
+                      "expression": "`archetype`"
+                    },
+                    {
+                      "name": "sum(uptime)",
+                      "expression": "SUM(`uptime`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "archetype",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Archetype"
+                },
+                "y": {
+                  "fieldName": "sum(uptime)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Screens online",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Screen uptime by site type",
+                "description": "Similar uptime + very different traffic = a traffic gap, not a screen problem.",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 8,
+            "width": 4,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "roi_model",
+      "displayName": "ROI Model",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "title_roi",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## ROI model\n",
+                "\n",
+                "The basis column shows which lines come from the demo data and which are assumptions to validate."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_roi_total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "roi_model",
+                  "fields": [
+                    {
+                      "name": "sum(annual_savings_usd)",
+                      "expression": "SUM(`annual_savings_usd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(annual_savings_usd)",
+                  "displayName": "Estimated annual value",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Estimated annual value"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "roi_by_benefit",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "roi_model",
+                  "fields": [
+                    {
+                      "name": "benefit",
+                      "expression": "`benefit`"
+                    },
+                    {
+                      "name": "sum(annual_savings_usd)",
+                      "expression": "SUM(`annual_savings_usd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(annual_savings_usd)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Annual value",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "benefit",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "value"
+                    }
+                  },
+                  "displayName": "Benefit"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Annual value by benefit"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 8,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "roi_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "roi_model",
+                  "fields": [
+                    {
+                      "name": "benefit",
+                      "expression": "`benefit`"
+                    },
+                    {
+                      "name": "basis",
+                      "expression": "`basis`"
+                    },
+                    {
+                      "name": "current_exposure_usd",
+                      "expression": "`current_exposure_usd`"
+                    },
+                    {
+                      "name": "recovery_rate",
+                      "expression": "`recovery_rate`"
+                    },
+                    {
+                      "name": "annual_savings_usd",
+                      "expression": "`annual_savings_usd`"
+                    },
+                    {
+                      "name": "description",
+                      "expression": "`description`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "benefit",
+                    "displayName": "Benefit"
+                  },
+                  {
+                    "fieldName": "basis",
+                    "displayName": "Basis"
+                  },
+                  {
+                    "fieldName": "current_exposure_usd",
+                    "displayName": "Current exposure",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "recovery_rate",
+                    "displayName": "Recovery rate",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "annual_savings_usd",
+                    "displayName": "Annual value",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "description",
+                    "displayName": "How it's calculated"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "ROI breakdown"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 5
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#FAF9F7",
+        "dark": "#1A1A19"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#222221"
+      },
+      "widgetBorderColor": {
+        "light": "#FFFFFF",
+        "dark": "#222221"
+      },
+      "fontColor": {
+        "light": "#1B1B1B",
+        "dark": "#F0EFEC"
+      },
+      "selectionColor": {
+        "light": "#2272B4",
+        "dark": "#8ACAFF"
+      },
+      "visualizationColors": [
+        "#DA291C",
+        "#F58025",
+        "#4E79A7",
+        "#59A14F",
+        "#B07AA1",
+        "#76B7B2",
+        "#9C755F"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}

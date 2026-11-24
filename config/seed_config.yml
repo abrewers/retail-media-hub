@@ -1,0 +1,208 @@
+# Retail Media Command Center: synthetic demo data configuration.
+#
+# The setup job (src/notebooks/setup.py) turns this file into source tables and
+# contract PDFs. Everything is deterministic (fixed random seed): the same config
+# always produces the same data.
+#
+# Dates are OFFSETS in days from as_of_date (set by the bundle variable as_of_date;
+# default: the day setup runs), so the demo always looks current.
+# Advertisers, people and contracts are fictional.
+
+random_seed: 42
+data_start_offset: -102          # first day of impression history (relative to as_of_date)
+
+# Retailer branding. `name` is the default; the setup job's `retailer_name` parameter (asked by
+# scripts/configure.sh) overrides it. "{retailer}" anywhere in this file is replaced with the name.
+retailer:
+  name: "Waypoint Fuel & Market"
+  network_name: "{retailer} Retail Media"
+  publisher_legal_name: "{retailer}, Inc."
+  publisher_signatory: {name: Dana Whitfield, title: "Director, Retail Media Partnerships"}
+
+# ---------------------------------------------------------------------------
+# Sites. Impressions are generated from traffic, not assigned directly:
+#   impressions(campaign, site, day) = fuel_transactions(site, day)
+#                                      x screens_online / screens_installed
+#                                      x campaign share x noise
+# and then scaled per campaign so its total matches `delivered` below.
+# Suburban sites get 10-30x fewer fuel transactions than urban/highway sites.
+# ---------------------------------------------------------------------------
+sites:
+  per_region: 42
+  archetype_mix: {urban: 0.30, highway: 0.25, suburban: 0.45}
+  daily_fuel_transactions:       # [min, max] baseline per site per day
+    urban: [1800, 3000]
+    highway: [1500, 2600]
+    suburban: [80, 250]
+  weekend_factor: {urban: 0.85, highway: 1.25, suburban: 1.05}
+  pumps: {urban: [8, 12], highway: [12, 20], suburban: [4, 8]}
+  screens_per_pump: 1
+  baseline_uptime: [0.96, 1.0]    # normal share of screens online
+  regions:
+    Southwest:
+      state_cities: [[AZ, Phoenix], [AZ, Tucson], [AZ, Mesa], [NM, Albuquerque], [NV, Las Vegas], [TX, El Paso]]
+    Southeast:
+      state_cities: [[FL, Tampa], [FL, Orlando], [GA, Atlanta], [NC, Charlotte], [SC, Columbia], [FL, Jacksonville]]
+    Midwest:
+      state_cities: [[IL, Chicago], [OH, Columbus], [IN, Indianapolis], [MI, Detroit], [WI, Milwaukee], [MO, St. Louis]]
+    Northeast:
+      state_cities: [[PA, Pittsburgh], [NY, Albany], [MA, Worcester], [CT, Hartford], [NJ, Trenton], [PA, Allentown]]
+
+# ---------------------------------------------------------------------------
+# "Why" stories, built into the drivers (never written as a reason column).
+# ---------------------------------------------------------------------------
+stories:
+  # 1. Why is FizzCo Summer Fuel-Up so far behind pace?
+  #    A firmware rollout leaves screens mostly offline at Southwest sites for 3 weeks.
+  #    Every campaign running at those sites dips in the same window.
+  screen_outage:
+    region: Southwest
+    start_offset: -45
+    days: 21
+    sites: 15                     # chosen from the highest-traffic sites serving campaign 1
+    anchor_campaign_id: 1
+    uptime: [0.25, 0.40]          # share of screens online during the outage
+  # 2. Why is FizzCo Holiday Refresh critical with 10 days left?
+  #    Creative approval came 5 days after flight start (no impressions until then),
+  #    and its site plan leans on low-traffic suburban sites.
+  late_creative:
+    campaign_id: 3
+    delay_days: 5
+  site_plan_overrides:
+    # archetype weights used when picking each campaign's sites (default: sites.archetype_mix)
+    1: {urban: 0.45, highway: 0.35, suburban: 0.20}
+    3: {urban: 0.15, highway: 0.10, suburban: 0.75}
+  # 3. Why do suburban sites underperform? Falls out of daily_fuel_transactions above:
+  #    impressions per fuel transaction are flat across archetypes; traffic is the gap.
+
+paused_after_days: 10            # paused campaigns stopped delivering this many days after start
+
+# ---------------------------------------------------------------------------
+# Campaigns (47). `delivered` is the total impressions delivered as of as_of_date;
+# the generator scales each campaign's driver-based impressions to hit it exactly.
+# Headline KPIs this reproduces: 35 active, 8 at risk, 2 over-delivering, ~$242,925 shortfall.
+# ---------------------------------------------------------------------------
+campaigns:  # id | name | advertiser | status | region | channel | start_offset | end_offset | sites | contracted | cpm | delivered
+  - {id: 1, name: "FizzCo Summer Fuel-Up", advertiser: "FizzCo", status: active, region: Southwest, channel: pump_screen, start_offset: -102, end_offset: 3, sites: 35, contracted: 5000000, cpm: 12.50, delivered: 3817360}
+  - {id: 2, name: "FizzCo Zero Sugar Push", advertiser: "FizzCo", status: active, region: Southwest, channel: pump_screen, start_offset: -47, end_offset: 5, sites: 39, contracted: 2688716, cpm: 15.28, delivered: 1898467}
+  - {id: 3, name: "FizzCo Holiday Refresh", advertiser: "FizzCo", status: active, region: Midwest, channel: pump_screen, start_offset: -53, end_offset: 10, sites: 19, contracted: 3249345, cpm: 12.49, delivered: 2031731}
+  - {id: 4, name: "Crestline Zero Summer Blast", advertiser: "Crestline Cola", status: active, region: Southeast, channel: in_store_display, start_offset: -58, end_offset: 18, sites: 26, contracted: 2047764, cpm: 16.74, delivered: 1324705}
+  - {id: 5, name: "Crestline Classic Drive", advertiser: "Crestline Cola", status: active, region: Southwest, channel: pump_screen, start_offset: -76, end_offset: 7, sites: 21, contracted: 1212182, cpm: 14.52, delivered: 838215}
+  - {id: 6, name: "Crestline Energy Launch", advertiser: "Crestline Cola", status: active, region: Midwest, channel: pump_screen, start_offset: -89, end_offset: 11, sites: 16, contracted: 1697559, cpm: 12.06, delivered: 1089765}
+  - {id: 7, name: "VoltRush Pit Stop", advertiser: "VoltRush", status: active, region: Southeast, channel: in_store_display, start_offset: -66, end_offset: 5, sites: 31, contracted: 1690538, cpm: 11.79, delivered: 1197239}
+  - {id: 8, name: "VoltRush Wings on the Road", advertiser: "VoltRush", status: active, region: Northeast, channel: pump_screen, start_offset: -91, end_offset: 29, sites: 22, contracted: 2908443, cpm: 10.85, delivered: 1801162}
+  - {id: 9, name: "Apex Unleashed Highway", advertiser: "Apex Energy", status: active, region: Southwest, channel: pump_screen, start_offset: -37, end_offset: 18, sites: 37, contracted: 1256551, cpm: 13.75, delivered: 900042}
+  - {id: 10, name: "Apex Ultra Pump Takeover", advertiser: "Apex Energy", status: active, region: Midwest, channel: pump_screen, start_offset: -41, end_offset: 10, sites: 18, contracted: 905156, cpm: 10.67, delivered: 809748}
+  - {id: 11, name: "Cocoa Ridge Road Trip", advertiser: "Cocoa Ridge", status: active, region: Southeast, channel: pump_screen, start_offset: -61, end_offset: 25, sites: 31, contracted: 968005, cpm: 12.81, delivered: 713126}
+  - {id: 12, name: "Cocoa Ridge Fuel Your Hunger", advertiser: "Cocoa Ridge", status: active, region: Northeast, channel: pump_screen, start_offset: -33, end_offset: 30, sites: 40, contracted: 1293258, cpm: 9.23, delivered: 750571}
+  - {id: 13, name: "Crunchworks Crunch Hour", advertiser: "Crunchworks", status: active, region: Northeast, channel: in_store_display, start_offset: -59, end_offset: 6, sites: 22, contracted: 843863, cpm: 9.61, delivered: 751459}
+  - {id: 14, name: "Crunchworks Bold Bites", advertiser: "Crunchworks", status: active, region: Midwest, channel: pump_screen, start_offset: -34, end_offset: 24, sites: 22, contracted: 1501121, cpm: 7.92, delivered: 836853}
+  - {id: 15, name: "Golden Kettle Grab & Go", advertiser: "Golden Kettle", status: active, region: Southwest, channel: pump_screen, start_offset: -62, end_offset: 23, sites: 20, contracted: 2417738, cpm: 8.48, delivered: 1596983}
+  - {id: 16, name: "Golden Kettle Classic Commute", advertiser: "Golden Kettle", status: active, region: Southeast, channel: pump_screen, start_offset: -50, end_offset: 43, sites: 17, contracted: 2861366, cpm: 15.96, delivered: 1461679}
+  - {id: 17, name: "HydroPeak Hydration Station", advertiser: "HydroPeak", status: active, region: Northeast, channel: pump_screen, start_offset: -34, end_offset: 36, sites: 15, contracted: 1612331, cpm: 6.46, delivered: 780133}
+  - {id: 18, name: "HydroPeak Game Day Fuel", advertiser: "HydroPeak", status: active, region: Midwest, channel: pump_screen, start_offset: -77, end_offset: 19, sites: 27, contracted: 2049908, cpm: 8.13, delivered: 1618174}
+  - {id: 19, name: "Ironclad Oil Change", advertiser: "Ironclad Lubricants", status: active, region: Southeast, channel: pump_screen, start_offset: -66, end_offset: 23, sites: 24, contracted: 2718538, cpm: 5.09, delivered: 1889265}
+  - {id: 20, name: "Ironclad Premium Fuel Promo", advertiser: "Ironclad Lubricants", status: active, region: Northeast, channel: pump_screen, start_offset: -27, end_offset: 12, sites: 28, contracted: 1609250, cpm: 6.27, delivered: 1003827}
+  - {id: 21, name: "Meridian Synthetic Drive", advertiser: "Meridian Motor Oil", status: active, region: Southwest, channel: pump_screen, start_offset: -56, end_offset: 13, sites: 38, contracted: 1642311, cpm: 8.10, delivered: 1291323}
+  - {id: 22, name: "Meridian Protection Plan", advertiser: "Meridian Motor Oil", status: active, region: Northeast, channel: pump_screen, start_offset: -42, end_offset: 17, sites: 30, contracted: 1607228, cpm: 10.56, delivered: 1079198}
+  - {id: 23, name: "{retailer} Coffee Club", advertiser: "{retailer} Own Brand", status: active, region: Northeast, channel: pump_screen, start_offset: -26, end_offset: 44, sites: 39, contracted: 2276605, cpm: 14.12, delivered: 808050}
+  - {id: 24, name: "{retailer} Frozen Drink Push", advertiser: "{retailer} Own Brand", status: active, region: Midwest, channel: pump_screen, start_offset: -42, end_offset: 12, sites: 26, contracted: 1598720, cpm: 6.78, delivered: 1195770}
+  - {id: 25, name: "{retailer} Fresh Food Fridays", advertiser: "{retailer} Own Brand", status: active, region: Southeast, channel: pump_screen, start_offset: -66, end_offset: 31, sites: 25, contracted: 2852613, cpm: 5.11, delivered: 1921498}
+  - {id: 26, name: "NightOwl Commuter", advertiser: "NightOwl Shot", status: active, region: Northeast, channel: pump_screen, start_offset: -78, end_offset: 13, sites: 22, contracted: 2788371, cpm: 5.40, delivered: 2361890}
+  - {id: 27, name: "NightOwl Night Shift", advertiser: "NightOwl Shot", status: active, region: Northeast, channel: in_store_display, start_offset: -56, end_offset: 13, sites: 27, contracted: 2302656, cpm: 6.40, delivered: 1850625}
+  - {id: 28, name: "Trailhead Protein Pit Stop", advertiser: "Trailhead Jerky", status: active, region: Midwest, channel: pump_screen, start_offset: -78, end_offset: 6, sites: 25, contracted: 2000760, cpm: 7.31, delivered: 1685849}
+  - {id: 29, name: "Trailhead Highway Hunger", advertiser: "Trailhead Jerky", status: active, region: Southeast, channel: pump_screen, start_offset: -27, end_offset: 26, sites: 34, contracted: 2848321, cpm: 14.73, delivered: 1464003}
+  - {id: 30, name: "Kinetic Fit Live Fuel", advertiser: "Kinetic Fit", status: active, region: Southwest, channel: in_store_display, start_offset: -68, end_offset: 13, sites: 35, contracted: 1492948, cpm: 14.51, delivered: 1237262}
+  - {id: 31, name: "Kinetic Fit Essentials Launch", advertiser: "Kinetic Fit", status: active, region: Southeast, channel: pump_screen, start_offset: -22, end_offset: 15, sites: 37, contracted: 1893286, cpm: 13.61, delivered: 1117680}
+  - {id: 32, name: "Surge Electric Drive", advertiser: "Surge Energy", status: active, region: Northeast, channel: in_store_display, start_offset: -76, end_offset: 19, sites: 17, contracted: 1619064, cpm: 6.75, delivered: 1230916}
+  - {id: 33, name: "Surge Night Shift", advertiser: "Surge Energy", status: active, region: Midwest, channel: in_store_display, start_offset: -76, end_offset: 6, sites: 28, contracted: 2474217, cpm: 7.45, delivered: 2077304}
+  - {id: 34, name: "Frost Pouches Launch", advertiser: "Frost Pouches", status: active, region: Southwest, channel: in_store_display, start_offset: -40, end_offset: 18, sites: 21, contracted: 1435009, cpm: 5.26, delivered: 890142}
+  - {id: 35, name: "Frost Cool Mint Promo", advertiser: "Frost Pouches", status: active, region: Northeast, channel: in_store_display, start_offset: -42, end_offset: 21, sites: 17, contracted: 791171, cpm: 15.64, delivered: 511312}
+  - {id: 36, name: "Lindqvist 0.0 EV Lounge", advertiser: "Lindqvist 0.0", status: completed, region: Southeast, channel: pump_screen, start_offset: -173, end_offset: -18, sites: 17, contracted: 2176372, cpm: 12.47, delivered: 1173485}
+  - {id: 37, name: "Lindqvist 0.0 Dry Month", advertiser: "Lindqvist 0.0", status: completed, region: Northeast, channel: pump_screen, start_offset: -105, end_offset: -30, sites: 18, contracted: 1595615, cpm: 6.96, delivered: 1625932}
+  - {id: 38, name: "Bellacrema Coffee Experience", advertiser: "Bellacrema Coffee", status: completed, region: Midwest, channel: in_store_display, start_offset: -104, end_offset: -21, sites: 16, contracted: 2322692, cpm: 8.80, delivered: 2322692}
+  - {id: 39, name: "Bellacrema Morning Ritual", advertiser: "Bellacrema Coffee", status: completed, region: Southwest, channel: in_store_display, start_offset: -168, end_offset: -18, sites: 24, contracted: 985053, cpm: 9.24, delivered: 583321}
+  - {id: 40, name: "Sol Dorado Road Trip", advertiser: "Sol Dorado", status: completed, region: Northeast, channel: in_store_display, start_offset: -96, end_offset: -24, sites: 21, contracted: 2328957, cpm: 5.02, delivered: 2342931}
+  - {id: 41, name: "Sol Dorado Chelada Summer", advertiser: "Sol Dorado", status: completed, region: Southeast, channel: pump_screen, start_offset: -146, end_offset: -4, sites: 19, contracted: 1884959, cpm: 11.85, delivered: 1342849}
+  - {id: 42, name: "Maple & Main Road Snack Pack", advertiser: "Maple & Main Sweets", status: completed, region: Northeast, channel: in_store_display, start_offset: -129, end_offset: -18, sites: 32, contracted: 1797233, cpm: 12.34, delivered: 1436293}
+  - {id: 43, name: "Maple & Main Grab & Go", advertiser: "Maple & Main Sweets", status: completed, region: Midwest, channel: pump_screen, start_offset: -180, end_offset: -11, sites: 36, contracted: 2825374, cpm: 6.40, delivered: 1507874}
+  - {id: 44, name: "Morning Ring Iced Coffee Highway", advertiser: "Morning Ring Donuts", status: completed, region: Northeast, channel: in_store_display, start_offset: -139, end_offset: -23, sites: 34, contracted: 1229923, cpm: 11.77, delivered: 824231}
+  - {id: 45, name: "Morning Ring Munchkins Promo", advertiser: "Morning Ring Donuts", status: completed, region: Southwest, channel: in_store_display, start_offset: -161, end_offset: -28, sites: 34, contracted: 501702, cpm: 8.34, delivered: 269927}
+  - {id: 46, name: "ProArmor Sports Hydration", advertiser: "ProArmor", status: paused, region: Midwest, channel: pump_screen, start_offset: -56, end_offset: 56, sites: 20, contracted: 975805, cpm: 8.25, delivered: 80896}
+  - {id: 47, name: "ProArmor Flash Launch", advertiser: "ProArmor", status: paused, region: Southeast, channel: pump_screen, start_offset: -37, end_offset: 51, sites: 21, contracted: 1292343, cpm: 10.56, delivered: 124540}
+
+# ---------------------------------------------------------------------------
+# Contracts. Rendered to PDF insertion orders (IOs). The make-good terms below appear
+# ONLY in the PDF text: the setup job extracts them with ai_parse_document + ai_extract,
+# then checks the extracted values against this file.
+# folder: contracts -> extracted on setup; samples -> left for the live "drop a new IO" demo.
+# ---------------------------------------------------------------------------
+contracts:
+  - campaign_id: 1
+    folder: contracts
+    io_number: IO-2026-0731
+    advertiser_legal_name: FizzCo Beverages LLC
+    advertiser_signatory: {name: Priya Raman, title: "Senior Manager, Shopper Marketing"}
+    effective_offset: -109
+    makegood_threshold_pct: 100
+    makegood_window_days: 30
+    credit_option_shortfall_pct: 15
+    excess_remedy: "a pro-rata credit at the contracted CPM for all undelivered impressions"
+    special_terms: "Delivery is measured across all participating sites in aggregate."
+  - campaign_id: 7
+    folder: contracts
+    io_number: IO-2026-0802
+    advertiser_legal_name: VoltRush Beverage Company
+    advertiser_signatory: {name: Marcus Lindgren, title: "Head of Trade Marketing"}
+    effective_offset: -72
+    makegood_threshold_pct: 95
+    makegood_window_days: 21
+    credit_option_shortfall_pct: 20
+    excess_remedy: "a credit equal to the undelivered impressions multiplied by the contracted CPM"
+    special_terms: "No make-good is owed where the shortfall is 5% of contracted impressions or less."
+  - campaign_id: 9
+    folder: contracts
+    io_number: IO-2026-0915
+    advertiser_legal_name: Apex Energy Drinks Inc.
+    advertiser_signatory: {name: Elena Vasquez, title: "Brand Partnerships Lead"}
+    effective_offset: -44
+    makegood_threshold_pct: 90
+    makegood_window_days: 14
+    credit_option_shortfall_pct: 25
+    excess_remedy: "either a credit or a split remedy of 50% make-good impressions and 50% credit, at the Advertiser's election"
+    special_terms: "Make-good impressions must run on highway and transit sites only."
+  - campaign_id: 3
+    folder: samples
+    io_number: IO-2026-0904
+    advertiser_legal_name: FizzCo Beverages LLC
+    advertiser_signatory: {name: Priya Raman, title: "Senior Manager, Shopper Marketing"}
+    effective_offset: -60
+    makegood_threshold_pct: 95
+    makegood_window_days: 21
+    credit_option_shortfall_pct: 10
+    excess_remedy: "a pro-rata credit at the contracted CPM, or bonus impressions on urban and highway sites, at the Advertiser's election"
+    special_terms: "Flight start is contingent on creative approval; the flight end date does not move if approval is late."
+
+# ---------------------------------------------------------------------------
+# App write-back seed rows (Lakebase app_ops), created by the app on first start
+# and restored by "Reset demo data". People are fictional.
+# ---------------------------------------------------------------------------
+app_seed:
+  users:
+    ops_analyst: jordan.ellis@example.com
+    ops_manager: sam.okafor@example.com
+    finance_approver: riley.chen@example.com
+  make_goods:
+    - {campaign_id: 42, type: extension, status: submitted, created_by: ops_analyst, created_offset: -3,
+       clause: "Section 7.2: make-good owed if delivery falls below 90%",
+       notes: "Flight closed at 79.9% delivery. Proposing a 5-day extension on the same sites."}
+    - {campaign_id: 45, type: credit, status: approved, created_by: ops_manager, created_offset: -6,
+       approved_by: finance_approver, approved_offset: -5,
+       clause: "Section 7.1: pro-rata credit",
+       notes: "Flight closed at 53.8% delivery. Credit memo issued to Morning Ring Donuts."}
+  rebalances:
+    # site targets are chosen by the app at seed time from the campaign's real site data
+    - {campaign_id: 1, created_by: ops_analyst, created_offset: -1, increase_top_sites: 2, decrease_bottom_sites: 1,
+       statuses: [approved, pending, pending], reason: "Shift delivery from a low-traffic suburban site to high-traffic sites"}
+    - {campaign_id: 7, created_by: ops_manager, created_offset: -2, increase_top_sites: 1, decrease_bottom_sites: 0,
+       statuses: [executed], reason: "Recover pace at a high-traffic site before flight end"}

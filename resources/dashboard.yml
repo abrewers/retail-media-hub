@@ -1,0 +1,8 @@
+resources:
+  dashboards:
+    rmcc_dashboard:
+      display_name: Retail Media Command Center
+      file_path: ../src/dashboards/retail_media_command_center.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${resources.schemas.rmcc.name}

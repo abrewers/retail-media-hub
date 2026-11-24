@@ -1,0 +1,14 @@
+.databricks/
+# per-person targets written by scripts/configure.sh (only the template is shared)
+targets/*.yml
+targets/*.yml.bak
+!targets/azure.yml
+build.log
+src/app/node_modules/
+src/app/dist/
+src/app/client/dist/
+src/app/.env
+.DS_Store
+
+# private block list for scripts/check_anonymized.sh
+scripts/denylist.local

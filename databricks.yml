@@ -1,0 +1,45 @@
+# Retail Media Command Center: MVP bundle.
+#
+# Deploy in three commands (see README.md):
+#   databricks bundle deploy -t <target>
+#   databricks bundle run rmcc_setup -t <target>     # data, PDFs, views, contract extraction, Genie
+#   databricks bundle run rmcc_app -t <target>       # starts the app (reads the Genie space from setup)
+bundle:
+  name: retail-media-command-center
+
+include:
+  - resources/*.yml
+  - targets/*.yml       # one file per workspace; add your own (see targets/azure.yml)
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for the governed schema (must already exist).
+  schema:
+    description: Governed schema created by this bundle (views, metric views, contract terms, demo config).
+    default: retail_media
+  source_catalog:
+    description: Catalog of the source tables. Empty = same as catalog.
+    default: ""
+  source_schema:
+    description: Schema of the source tables. Empty = same as schema. Point at real data with generate_data=false.
+    default: ""
+  generate_data:
+    description: "true = generate synthetic source tables and contract PDFs from config/seed_config.yml."
+    default: "true"
+  as_of_date:
+    description: The demo's "today" (YYYY-MM-DD). Empty = the day setup runs.
+    default: ""
+  warehouse_id:
+    description: Pro or Serverless SQL warehouse ID (not a Lakehouse RT warehouse; it can't query metric views).
+  lakebase_project:
+    description: Lakebase project ID created by this bundle for the app's write-back tables.
+    default: rmcc-ops
+  app_name:
+    description: Databricks App name (lowercase letters, numbers, hyphens; 26 characters max).
+    default: retail-media-hub
+  viewer_group:
+    description: Group granted SELECT on the schemas and access to the Genie space. Empty = none.
+    default: users
+  retailer_name:
+    description: Retailer name shown in the app and used for store names and contract PDFs. Empty = the fictional default in config/seed_config.yml.
+    default: ""

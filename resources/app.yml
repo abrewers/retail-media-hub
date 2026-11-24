@@ -1,0 +1,32 @@
+resources:
+  apps:
+    rmcc_app:
+      name: ${var.app_name}
+      description: Retail Media Command Center (campaign triage, rebalance, make-goods, Genie)
+      source_code_path: ../src/app
+      # Genie questions run with the signed-in user's permissions (on-behalf-of-user).
+      user_api_scopes:
+        - genie
+      config:
+        command: ["pnpm", "run", "start"]
+        env:
+          - name: LAKEBASE_ENDPOINT
+            value_from: postgres
+          - name: DATABRICKS_WAREHOUSE_ID
+            value_from: sql-warehouse
+          - name: RMCC_CATALOG
+            value: ${var.catalog}
+          - name: RMCC_SCHEMA
+            value: ${var.schema}
+          - name: RMCC_ALLOW_RESET
+            value: "true"
+      resources:
+        - name: postgres
+          postgres:
+            branch: ${resources.postgres_projects.rmcc_ops.name}/branches/production
+            database: ${resources.postgres_projects.rmcc_ops.name}/branches/production/databases/databricks-postgres
+            permission: CAN_CONNECT_AND_CREATE
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE

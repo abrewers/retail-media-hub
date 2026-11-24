@@ -1,0 +1,14 @@
+{
+  "name": "Retail Media Command Center",
+  "short_name": "RM Command Center",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#0F766E",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}

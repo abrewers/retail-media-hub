@@ -1,0 +1,32 @@
+@import "@databricks/appkit-ui/styles.css";
+@import "./ops.css";
+
+/* AppKit switches to dark via `:root:not(.light)` under prefers-color-scheme; index.html sets class="light".
+   Tie Tailwind's dark: variant to an explicit .dark class too, so nothing follows the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Ops Console is light-first: pin AppKit's theme tokens to light values so its components
+   (Genie chat, toasts, inputs) match, whatever the viewer's OS colour scheme is. */
+:root.light {
+  color-scheme: light;
+  --radius: 0.75rem;
+  --background: oklch(0.977 0.003 255);
+  --foreground: oklch(0.2 0.02 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 255);
+  --primary: oklch(0.29 0.03 220);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.967 0.003 255);
+  --secondary-foreground: oklch(0.21 0.02 255);
+  --muted: oklch(0.967 0.003 255);
+  --muted-foreground: oklch(0.52 0.02 255);
+  --accent: oklch(0.96 0.004 255);
+  --accent-foreground: oklch(0.21 0.02 255);
+  --destructive: oklch(0.577 0.2 27);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.92 0.005 255);
+  --input: oklch(0.92 0.005 255);
+  --ring: oklch(0.6 0.03 220);
+}

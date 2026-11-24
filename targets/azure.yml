@@ -1,0 +1,10 @@
+# Azure Databricks target. Copy this file for other workspaces (for example targets/prod.yml).
+targets:
+  # Azure Databricks. Set the host (or use --profile) and the variables marked CHANGE ME.
+  azure:
+    default: true
+    workspace:
+      host: https://adb-0000000000000000.0.azuredatabricks.net   # CHANGE ME
+    variables:
+      catalog: main                                              # CHANGE ME
+      warehouse_id: "0000000000000000"                           # CHANGE ME (databricks warehouses list)

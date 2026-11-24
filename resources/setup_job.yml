@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    rmcc_setup:
+      name: "Retail Media Command Center: setup"
+      description: >
+        Builds everything under the app: synthetic data, contract PDFs, views and metric views,
+        AI contract extraction, the Genie space and grants. Idempotent; re-run after dropping new
+        IO PDFs into the contracts volume or changing config/seed_config.yml.
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      parameters:
+        - {name: catalog, default: "${var.catalog}"}
+        - {name: schema, default: "${var.schema}"}
+        - {name: source_catalog, default: "${var.source_catalog}"}
+        - {name: source_schema, default: "${var.source_schema}"}
+        - {name: volume, default: "${resources.volumes.contracts.name}"}
+        - {name: config_path, default: "${workspace.file_path}/config/seed_config.yml"}
+        - {name: as_of_date, default: "${var.as_of_date}"}
+        - {name: generate_data, default: "${var.generate_data}"}
+        - {name: warehouse_id, default: "${var.warehouse_id}"}
+        - {name: app_name, default: "${resources.apps.rmcc_app.name}"}
+        - {name: lakebase_project, default: "${resources.postgres_projects.rmcc_ops.project_id}"}
+        - {name: viewer_group, default: "${var.viewer_group}"}
+        - {name: retailer_name, default: "${var.retailer_name}"}
+        - {name: genie_title, default: "Retail Media Command Center"}
+        - {name: run_genie_check, default: "true"}
+        - {name: strict_extraction_check, default: "true"}
+      tasks:
+        - task_key: setup
+          notebook_task:
+            notebook_path: ../src/notebooks/setup.py

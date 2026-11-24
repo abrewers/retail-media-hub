@@ -1,0 +1,19 @@
+resources:
+  schemas:
+    rmcc:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Retail Media Command Center governed layer (views, metric views, contract terms, demo config).
+
+  volumes:
+    contracts:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.rmcc.name}
+      name: contracts
+      volume_type: MANAGED
+      comment: "Signed insertion-order (IO) PDFs. contracts/ is extracted by setup; samples/ holds a spare IO for the live demo."
+
+  postgres_projects:
+    rmcc_ops:
+      project_id: ${var.lakebase_project}
+      display_name: Retail Media Command Center write-back
