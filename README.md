@@ -60,8 +60,8 @@ All commands below run from this folder. On Windows, run them in WSL or Git Bash
 ## 3. Log in to the workspace
 
 ```bash
-databricks auth login --host https://<your-workspace-host> --profile rmcc
-databricks current-user me --profile rmcc        # should print your user
+databricks auth login --host https://<your-workspace-host> --profile retail-media-hub
+databricks current-user me --profile retail-media-hub        # should print your user
 ```
 
 Use your workspace URL, for example `https://adb-1234567890123456.7.azuredatabricks.net` on Azure or `https://<name>.cloud.databricks.com` on AWS.
@@ -87,12 +87,12 @@ Answer **yes** to all three at the end, then go to **step 9**. If you'd rather r
 
 **SQL warehouse ID.** Pick a `PRO` or serverless warehouse, not one whose type is `REALTIME`:
 ```bash
-databricks warehouses list --profile rmcc
+databricks warehouses list --profile retail-media-hub
 ```
 
 **Catalog.** Pick one you can create a schema in:
 ```bash
-databricks catalogs list --profile rmcc
+databricks catalogs list --profile retail-media-hub
 ```
 
 ## 5. (Manual) Create your target file
@@ -136,8 +136,8 @@ Optional variables (defaults in `databricks.yml`):
 ## 6. Validate and deploy
 
 ```bash
-databricks bundle validate -t mine --profile rmcc     # expect: Validation OK!
-databricks bundle deploy -t mine --profile rmcc
+databricks bundle validate -t mine --profile retail-media-hub     # expect: Validation OK!
+databricks bundle deploy -t mine --profile retail-media-hub
 ```
 
 `deploy` creates the schema, the contracts volume, the Lakebase project, the app, the setup job and the dashboard. It takes 1–3 minutes.
@@ -145,7 +145,7 @@ databricks bundle deploy -t mine --profile rmcc
 ## 7. Run setup
 
 ```bash
-databricks bundle run rmcc_setup -t mine --profile rmcc
+databricks bundle run setup -t mine --profile retail-media-hub
 ```
 
 This takes about 5–10 minutes. It generates the data and the IO contract PDFs, builds the views and metric views, extracts the contract terms with AI Functions, creates the Genie space, grants access, and runs checks. The command prints a run URL; open it to watch progress. It ends with `TERMINATED SUCCESS`.
@@ -155,7 +155,7 @@ If it fails, open the run URL: the preflight and validation tables say what's wr
 ## 8. Start the app
 
 ```bash
-databricks bundle run rmcc_app -t mine --profile rmcc
+databricks bundle run app -t mine --profile retail-media-hub
 ```
 
 It ends with `You can access the app at https://...`. Open that URL. The first time, approve the **Permission Requested** prompt; that lets Genie in the app run as you.
@@ -213,11 +213,11 @@ You can also add IOs without the app: copy PDFs into `contracts/contracts/` and 
 
 ## Clean up
 
-In the commands below, use your own target and profile names: whatever you chose in `scripts/configure.sh`, or `mine` / `rmcc` from the manual steps.
+In the commands below, use your own target and profile names: whatever you chose in `scripts/configure.sh`, or `mine` / `retail-media-hub` from the manual steps.
 
 1. Delete everything the bundle created:
    ```bash
-   databricks bundle destroy -t mine --profile rmcc
+   databricks bundle destroy -t mine --profile retail-media-hub
    ```
    This removes the app, job, dashboard, Lakebase project, volume and schema (including the tables setup created there).
 2. Delete the Genie space by hand: Workspace > Genie > **Retail Media Hub** > Delete. Setup created it, so the bundle doesn't track it.
@@ -240,7 +240,7 @@ In the commands below, use your own target and profile names: whatever you chose
 
 App logs:
 ```bash
-databricks apps logs <app_name> --profile rmcc
+databricks apps logs <app_name> --profile retail-media-hub
 ```
 
 ---

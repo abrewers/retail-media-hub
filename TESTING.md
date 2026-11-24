@@ -11,8 +11,8 @@ A full pass over the app after any change. Expected values assume the default sy
 | B1 | `tsc` (server and client), `eslint`, server and client builds | No errors | Pass |
 | B2 | `databricks bundle validate` | Validation OK! | Pass |
 | B3 | `bundle deploy` to a fresh target | 6 resources created | Pass |
-| B4 | `bundle run rmcc_setup` | TERMINATED SUCCESS; preflight, extraction and Genie checks pass | Pass |
-| B5 | `bundle run rmcc_app`, app logs | `app_ops schema ready`, server running, no errors | Pass |
+| B4 | `bundle run setup` | TERMINATED SUCCESS; preflight, extraction and Genie checks pass | Pass |
+| B5 | `bundle run app`, app logs | `app_ops schema ready`, server running, no errors | Pass |
 | B6 | `scripts/check_anonymized.sh` | Passes | Pass |
 | B7 | Default branding (`retailer_name` empty) | Sidebar, tab title and icon show *Waypoint Fuel & Market* / WF; store names *Waypoint Fuel & Market Phoenix #13*; IO PDFs name *Waypoint Fuel & Market, Inc.* as publisher | Pass |
 | U1 | Contract tab, campaign without an IO | Upload area; *download this campaign's sample IO* link on Holiday Refresh | Pass |

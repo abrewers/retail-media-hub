@@ -14,7 +14,7 @@ const demo = await readDemoConfig();
 setAppSeed(demo.appSeed);
 // AppKit's genie plugin validates this env var even when spaces are passed in config.
 if (demo.genieSpaceId) process.env.DATABRICKS_GENIE_SPACE_ID = demo.genieSpaceId;
-const allowReset = (process.env.RMCC_ALLOW_RESET ?? 'true').toLowerCase() === 'true';
+const allowReset = (process.env.RMH_ALLOW_RESET ?? 'true').toLowerCase() === 'true';
 
 createApp({
   plugins: [
@@ -36,7 +36,7 @@ createApp({
       });
       app.post('/api/admin/reset-demo', async (req, res) => {
         if (!allowReset) {
-          res.status(403).json({ error: 'Reset is disabled (RMCC_ALLOW_RESET=false)' });
+          res.status(403).json({ error: 'Reset is disabled (RMH_ALLOW_RESET=false)' });
           return;
         }
         try {

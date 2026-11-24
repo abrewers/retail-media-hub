@@ -99,7 +99,7 @@ if [ "$choice" = "__new__" ]; then
   host=$(ask "Workspace URL (e.g. https://adb-1234567890123456.7.azuredatabricks.net)" "")
   host="${host%/}"
   [[ "$host" =~ ^https:// ]] || die "The workspace URL must start with https://"
-  profile=$(ask "Name for this CLI profile" "rmcc")
+  profile=$(ask "Name for this CLI profile" "retail-media-hub")
   databricks auth login --host "$host" --profile "$profile"
 else
   profile="$choice"
@@ -240,9 +240,9 @@ run dbx bundle validate -t "$target" --profile "$profile" || die "Validation fai
 if yesno "Deploy the bundle now (creates the schema, volume, Lakebase project, app, job and dashboard)?" "Y"; then
   run databricks bundle deploy -t "$target" --profile "$profile"
   if yesno "Run setup now (about 5-10 minutes: data, PDFs, views, AI extraction, Genie)?" "Y"; then
-    run databricks bundle run rmcc_setup -t "$target" --profile "$profile"
+    run databricks bundle run setup -t "$target" --profile "$profile"
     if yesno "Start the app now?" "Y"; then
-      run databricks bundle run rmcc_app -t "$target" --profile "$profile"
+      run databricks bundle run app -t "$target" --profile "$profile"
       say ""
       ok "Done. Open the app URL above and approve the Permission Requested prompt the first time."
       say "Next: README step 9 lists what each screen should show."
@@ -253,5 +253,5 @@ fi
 say ""
 say "Next steps (README steps 6-8):"
 say "  databricks bundle deploy -t $target --profile $profile"
-say "  databricks bundle run rmcc_setup -t $target --profile $profile"
-say "  databricks bundle run rmcc_app -t $target --profile $profile"
+say "  databricks bundle run setup -t $target --profile $profile"
+say "  databricks bundle run app -t $target --profile $profile"

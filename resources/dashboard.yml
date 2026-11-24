@@ -1,8 +1,8 @@
 resources:
   dashboards:
-    rmcc_dashboard:
+    dashboard:
       display_name: Retail Media Hub
       file_path: ../src/dashboards/retail_media_hub.lvdash.json
       warehouse_id: ${var.warehouse_id}
       dataset_catalog: ${var.catalog}
-      dataset_schema: ${resources.schemas.rmcc.name}
+      dataset_schema: ${resources.schemas.governed.name}

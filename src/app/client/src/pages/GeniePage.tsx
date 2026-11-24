@@ -8,7 +8,7 @@ function NotSetUp() {
   return (
     <div className="ox-panel" style={{ maxWidth: 620, margin: '48px auto', textAlign: 'center' }}>
       <h2 className="ox-h3">Genie isn&apos;t set up yet</h2>
-      <p className="ox-muted">Run the setup job (<code>databricks bundle run rmcc_setup</code>), then restart the app (<code>databricks bundle run rmcc_app</code>). See README.md.</p>
+      <p className="ox-muted">Run the setup job (<code>databricks bundle run setup</code>), then restart the app (<code>databricks bundle run app</code>). See README.md.</p>
     </div>
   );
 }

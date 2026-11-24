@@ -1,6 +1,6 @@
 resources:
   apps:
-    rmcc_app:
+    app:
       name: ${var.app_name}
       description: "Retail Media Hub: campaign pacing, rebalancing, make-goods, IO contract upload and Genie"
       source_code_path: ../src/app
@@ -14,17 +14,17 @@ resources:
             value_from: postgres
           - name: DATABRICKS_WAREHOUSE_ID
             value_from: sql-warehouse
-          - name: RMCC_CATALOG
+          - name: RMH_CATALOG
             value: ${var.catalog}
-          - name: RMCC_SCHEMA
+          - name: RMH_SCHEMA
             value: ${var.schema}
-          - name: RMCC_ALLOW_RESET
+          - name: RMH_ALLOW_RESET
             value: "true"
       resources:
         - name: postgres
           postgres:
-            branch: ${resources.postgres_projects.rmcc_ops.name}/branches/production
-            database: ${resources.postgres_projects.rmcc_ops.name}/branches/production/databases/databricks-postgres
+            branch: ${resources.postgres_projects.ops_db.name}/branches/production
+            database: ${resources.postgres_projects.ops_db.name}/branches/production/databases/databricks-postgres
             permission: CAN_CONNECT_AND_CREATE
         - name: sql-warehouse
           sql_warehouse:

@@ -114,7 +114,7 @@ export function registerContractUploadRoutes(appkit: AppKitWithLakebase, spec: E
     app.post('/api/campaigns/:id/contract', async (req, res) => {
       const id = parseId(req.params.id);
       if (id === null) { res.status(400).json({ error: 'Invalid campaign id' }); return; }
-      if (!spec) { res.status(503).json({ error: 'Contract upload needs the latest setup job: re-run rmcc_setup, then restart the app.' }); return; }
+      if (!spec) { res.status(503).json({ error: 'Contract upload needs the latest setup job: re-run setup, then restart the app.' }); return; }
       try {
         if (!(await campaignById(id))) { res.status(404).json({ error: 'Campaign not found' }); return; }
         if ([...jobs.values()].some((j) => j.campaignId === id && j.state === 'extracting')) {

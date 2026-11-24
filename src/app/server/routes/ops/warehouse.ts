@@ -1,6 +1,6 @@
 // Unity Catalog reads through the app's SQL warehouse.
 //
-// The governed catalog and schema come from the bundle (env RMCC_CATALOG / RMCC_SCHEMA) and are
+// The governed catalog and schema come from the bundle (env RMH_CATALOG / RMH_SCHEMA) and are
 // passed as the statement's default catalog and schema, so the SQL in this app uses bare names
 // (v_campaign_delivery, metric_view_campaign_delivery, dim_contract_terms, ...).
 //
@@ -12,8 +12,8 @@ import { WorkspaceClient } from '@databricks/sdk-experimental';
 type Param = string | number | null;
 export type Row = Record<string, string | number | boolean | null>;
 
-const CATALOG = process.env.RMCC_CATALOG ?? '';
-const SCHEMA = process.env.RMCC_SCHEMA ?? 'retail_media';
+const CATALOG = process.env.RMH_CATALOG ?? '';
+const SCHEMA = process.env.RMH_SCHEMA ?? 'retail_media';
 const NUMERIC = new Set(['BYTE', 'SHORT', 'INT', 'LONG', 'FLOAT', 'DOUBLE', 'DECIMAL']);
 
 let client: WorkspaceClient | undefined;

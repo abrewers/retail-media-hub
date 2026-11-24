@@ -2,8 +2,8 @@
 #
 # Deploy in three commands (see README.md):
 #   databricks bundle deploy -t <target>
-#   databricks bundle run rmcc_setup -t <target>     # data, PDFs, views, contract extraction, Genie
-#   databricks bundle run rmcc_app -t <target>       # starts the app (reads the Genie space from setup)
+#   databricks bundle run setup -t <target>     # data, PDFs, views, contract extraction, Genie
+#   databricks bundle run app -t <target>       # starts the app (reads the Genie space from setup)
 bundle:
   name: retail-media-hub
 

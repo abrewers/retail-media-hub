@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Retail Media Hub: setup
 # MAGIC
-# MAGIC One idempotent notebook that builds everything under the app. It runs as the bundle job `rmcc_setup` and is safe to re-run.
+# MAGIC One idempotent notebook that builds everything under the app. It runs as the bundle job `setup` and is safe to re-run.
 # MAGIC
 # MAGIC | Step | What it does |
 # MAGIC | --- | --- |

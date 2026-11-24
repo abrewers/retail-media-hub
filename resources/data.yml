@@ -1,6 +1,6 @@
 resources:
   schemas:
-    rmcc:
+    governed:
       catalog_name: ${var.catalog}
       name: ${var.schema}
       comment: Retail Media Hub governed layer (views, metric views, contract terms, demo config).
@@ -8,12 +8,12 @@ resources:
   volumes:
     contracts:
       catalog_name: ${var.catalog}
-      schema_name: ${resources.schemas.rmcc.name}
+      schema_name: ${resources.schemas.governed.name}
       name: contracts
       volume_type: MANAGED
       comment: "Signed insertion-order (IO) PDFs. contracts/ is extracted by setup; samples/ holds a spare IO for the live demo."
 
   postgres_projects:
-    rmcc_ops:
+    ops_db:
       project_id: ${var.lakebase_project}
       display_name: Retail Media Hub write-back
